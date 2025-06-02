@@ -127,7 +127,7 @@ if (isset($_POST["editLecture"])) {
     $faculty = mysqli_real_escape_string($conn, trim($_POST["faculty"]));
 
     // Check if the email is being updated to an existing one
-    $stmt = $conn->prepare("SELECT * FROM tbllecture WHERE LOWER(emailAddress) = LOWER(?) AND instructorId != ?");
+    $stmt = $conn->prepare("SELECT * FROM tbllecture WHERE LOWER(emailAddress) = LOWER(?) AND Id != ?");
     if (!$stmt) {
         die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
     }
@@ -139,7 +139,7 @@ if (isset($_POST["editLecture"])) {
         die("Another Lecture with this email already exists");
     } else {
         // Update the lecture details
-        $stmt_update = $conn->prepare("UPDATE tbllecture SET firstName = ?, lastName = ?, emailAddress = ?, phoneNo = ?, facultyCode = ? WHERE instructorId = ?");
+        $stmt_update = $conn->prepare("UPDATE tbllecture SET firstName = ?, lastName = ?, emailAddress = ?, phoneNo = ?, facultyCode = ? WHERE Id = ?");
         if (!$stmt_update) {
             die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
         }
@@ -161,16 +161,16 @@ if (isset($_POST["editLecture"])) {
 
 // Handle Delete Lecture
 if (isset($_POST["deleteLecture"])) {
-    $instructorId = intval($_POST["instructorId"]); // Sanitize input
+    $instructorId = intval($_POST["Id"]); // Changed from instructorId to Id
 
-    // Check if instructorId is valid
+    // Check if Id is valid
     if ($instructorId <= 0) {
         echo "<script>alert('Invalid Instructor ID.');</script>";
         exit();
     }
 
     // Prepare and execute the delete query
-    $deleteStmt = $conn->prepare("DELETE FROM tbllecture WHERE instructorId = ?");
+    $deleteStmt = $conn->prepare("DELETE FROM tbllecture WHERE Id = ?");
     if (!$deleteStmt) {
         die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
     }
@@ -482,16 +482,16 @@ if (isset($_POST["deleteLecture"])) {
                             if ($result->num_rows > 0) {
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>";
-                                    echo "<td>" . htmlspecialchars($row["instructorId"]) . "</td>"; 
+                                    echo "<td>" . htmlspecialchars($row["Id"]) . "</td>"; 
                                     echo "<td>" . htmlspecialchars($row["firstName"]) . " " . htmlspecialchars($row["lastName"]) . "</td>";
                                     echo "<td>" . htmlspecialchars($row["emailAddress"]) . "</td>";
                                     echo "<td>" . htmlspecialchars($row["phoneNo"]) . "</td>";
                                     echo "<td>" . htmlspecialchars($row["facultyCode"]) . "</td>";
                                     echo "<td>" . htmlspecialchars($row["dateCreated"]) . "</td>";
                                     echo "<td>
-                                            <button class='edit-button' data-id='" . htmlspecialchars($row["instructorId"]) . "' data-firstname='" . htmlspecialchars($row["firstName"]) . "' data-lastname='" . htmlspecialchars($row["lastName"]) . "' data-email='" . htmlspecialchars($row["emailAddress"]) . "' data-phone='" . htmlspecialchars($row["phoneNo"]) . "' data-faculty='" . htmlspecialchars($row["facultyCode"]) . "' title='Edit Instructor'><i class='ri-pencil-line'></i></button>
+                                            <button class='edit-button' data-id='" . htmlspecialchars($row["Id"]) . "' data-firstname='" . htmlspecialchars($row["firstName"]) . "' data-lastname='" . htmlspecialchars($row["lastName"]) . "' data-email='" . htmlspecialchars($row["emailAddress"]) . "' data-phone='" . htmlspecialchars($row["phoneNo"]) . "' data-faculty='" . htmlspecialchars($row["facultyCode"]) . "' title='Edit Instructor'><i class='ri-pencil-line'></i></button>
                                             <form method='POST' action='' style='display:inline;' onsubmit='return confirm(\"Are you sure you want to delete this instructor?\");'>
-                                                <input type='hidden' name='instructorId' value='" . htmlspecialchars($row["instructorId"]) . "'>
+                                                <input type='hidden' name='Id' value='" . htmlspecialchars($row["Id"]) . "'>
                                                 <button type='submit' name='deleteLecture' class='delete' title='Delete Instructor'><i class='ri-delete-bin-line'></i></button>
                                             </form>
                                           </td>";

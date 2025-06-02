@@ -1,13 +1,17 @@
-
 <?php
 session_start(); 
 
-if (!isset($_SESSION['userId']))
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['userId']) || !isset($_SESSION['userType']) || ($_SESSION['userType'] !== 'admin' && $_SESSION['userType'] !== 'instructor'))
 {
-  echo "<script type = \"text/javascript\">
-  window.location = (\"../index.php\");
-  </script>";
-
+    // Clear any existing session data
+    session_unset();
+    session_destroy();
+    
+    echo "<script type = \"text/javascript\">
+    window.location = (\"../index.php\");
+    </script>";
+    exit();
 }
 
     

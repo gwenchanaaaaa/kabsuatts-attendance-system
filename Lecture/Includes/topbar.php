@@ -4,28 +4,27 @@ $fullName = "";
 if (isset($_SESSION['userId'])) {
     $userId = $conn->real_escape_string($_SESSION['userId']);
 
-    $query = "SELECT * FROM tbllecture WHERE instructorId = $userId";
-
-    $rs = $conn->query($query);
+    $query = "SELECT * FROM tbllecture WHERE Id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
 
     if ($rs) {
         $num = $rs->num_rows;
 
         if ($num > 0) {
             $row = $rs->fetch_assoc();
-
             $fullName = $row['firstName'] . " " . $row['lastName'];
-            
-                } else {
-            echo "lecture not found";
+        } else {
+            echo "Lecturer not found";
         }
     } else {
         echo "Error: " . $conn->error;
     }
 } else {
- header('location: ../index.php');
+    header('location: ../index.php');
 }
-
 ?>
 
     <section class="header">
@@ -41,7 +40,7 @@ if (isset($_SESSION['userId'])) {
         </div>
         <div class="notification--profile">
             <div class="picon lock" style="background-color: white; color:black;">
-                <?php echo $fullName; ?>
+                <?php echo htmlspecialchars($fullName); ?>
             </div>
             <div class="picon profile">
             <img src="../admin/img/user.png" alt=""> 

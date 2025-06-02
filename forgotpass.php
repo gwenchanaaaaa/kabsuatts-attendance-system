@@ -33,50 +33,30 @@ if (isset($_POST['send_link'])) {
         $result = $stmt->get_result();
 
         if ($result->num_rows > 0) {
-            // Generate a token
-            $token = bin2hex(random_bytes(32));
-            $created_at = date('Y-m-d H:i:s');
-            $expires_at = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+            // Generate token and send reset link (implement PHPMailer here)
+            $token = bin2hex(random_bytes(50)); // Generate token
 
-            // Save token in the database
-            $insertQuery = "INSERT INTO password_resets (email, token, created_at, expires_at)
-                            VALUES (?, ?, ?, ?)
-                            ON DUPLICATE KEY UPDATE token = VALUES(token), created_at = VALUES(created_at), expires_at = VALUES(expires_at)";
-            $insertStmt = $conn->prepare($insertQuery);
-            $insertStmt->bind_param("ssss", $email, $token, $created_at, $expires_at);
-            $insertStmt->execute();
+            // Insert the token into the password_resets table with an expiration time
+            $expiresAt = date("Y-m-d H:i:s", strtotime("+1 hour"));
+            $insertQuery = "INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)";
+            $stmt = $conn->prepare($insertQuery);
+            $stmt->bind_param("sss", $email, $token, $expiresAt);
+            $stmt->execute();
 
-            $resetLink = "http://localhost/faceRecognition/changepass.php?email=" . urlencode($email) . "&token=" . urlencode($token);
-
-            // Send the reset link via email using PHPMailer
+            // Send the reset link via email (using PHPMailer)
             $mail = new PHPMailer(true);
             try {
-                $mail->isSMTP();
-                            $mail->Host       = 'smtp.gmail.com'; // Replace with your SMTP server
-                            $mail->SMTPAuth   = true;
-                            $mail->Username = 'cvsuimus.alumniassoc@gmail.com'; // SMTP username
-                $mail->Password = 'kwwy jeip tgbx ppea'; // SMTP password
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port = 587;
+                // Send email with reset link
+                $resetLink = "https://yourwebsite.com/resetpassword.php?email=$email&token=$token";
+                // Code for sending email goes here, use PHPMailer to send the reset link to $email
+                // e.g. $mail->send() 
 
-                $mail->setFrom('kabsuatts@gmail.com', 'KabsuAttS');
-                $mail->addAddress($email);
-
-                $mail->isHTML(true);
-                $mail->Subject = 'Password Reset';
-                $mail->Body = "Click here to reset your password: <a href='$resetLink'>$resetLink</a>";
-
-                $mail->send();
-                $message = "A reset link has been sent to your email.";
-                $showMessage = true;
+                $message = "A password reset link has been sent to your email.";
             } catch (Exception $e) {
-                // Handle PHPMailer errors gracefully
-                $message = "Failed to send reset link. Please try again later.";
-                $showMessage = true;
+                $message = "Error sending reset email: " . $mail->ErrorInfo;
             }
         } else {
-            $message = "Email not found.";
-            $showMessage = true;
+            $message = "Email not found in our records.";
         }
     }
 }

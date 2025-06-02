@@ -32,12 +32,17 @@ include '../Includes/session.php';
                         echo "<tr>";
                         $registrationNumber = $row["registrationNumber"];
                         echo "<td>" . $registrationNumber . "</td>";
-                        echo "<td>" . $row["firstName"] . $row["lastName"] . "</td>";
+                        echo "<td>" . $row["firstName"] . " " . $row["lastName"] . "</td>";
                         echo "<td>" . $courseID . "</td>";
                         echo "<td>" . $unitID . "</td>";
                         echo "<td>" . $venueID . "</td>";
                         echo "<td>Absent</td>"; 
-                        echo "<td><span><i class='ri-edit-line edit'></i><i class='ri-delete-bin-line delete'></i></span></td>";
+                        echo "<td>
+                            <span>
+                                <i class='ri-edit-line edit' onclick='editAttendance(this)'></i>
+                                <i class='ri-delete-bin-line delete' onclick='deleteAttendance(this)'></i>
+                            </span>
+                        </td>";
                         echo "</tr>";
                     }
 

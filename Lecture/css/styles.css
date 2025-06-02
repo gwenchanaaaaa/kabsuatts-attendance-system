@@ -440,30 +440,37 @@ padding-bottom:5px;
     
 }
 .table-container {
+    width: 100%;
+    overflow: visible;
     margin-bottom: 20px;
 }
 
 .table {
-    height: 200px;
-    overflow-y: scroll;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    max-height: none;
 }
 
 table {
     width: 100%;
-    text-align: left;
     border-collapse: collapse;
+    text-align: left;
 }
-.attendance-table{
-    overflow-x: scroll;
-    height:300px;
+
+.attendance-table {
+    width: 100%;
+    overflow-x: visible;
+    height: auto;
 }
+
 tr {
     border-bottom: 1px solid #f1f1f1;
 }
 
-td,
-th {
+td, th {
     padding-block: 10px;
+    white-space: nowrap;
 }
 
 .edit {
@@ -486,6 +493,7 @@ th {
 .rejected {
     color: #e86786;
 }
+
 
 
 /* responsive starts here */

@@ -1,7 +1,7 @@
-
 var labels = [];
 let detectedFaces = [];
 let sendingData = false; 
+let videoStream = null;
 
 function updateTable() {
     var selectedCourseID = document.getElementById('courseSelect').value;
@@ -17,151 +17,164 @@ function updateTable() {
             var response = JSON.parse(xhr.responseText);
             if (response.status === 'success') {
                 labels = response.data;
-
                 if (selectedCourseID && selectedUnitCode && selectedVenue) {
-                  updateOtherElements();
+                    updateOtherElements();
                 }             
-         document.getElementById('studentTableContainer').innerHTML = response.html;
+                document.getElementById('studentTableContainer').innerHTML = response.html;
             } else {
                 console.error('Error:', response.message);
             }
         }
-
     };
     xhr.send('courseID=' + encodeURIComponent(selectedCourseID) +
-    '&unitID=' + encodeURIComponent(selectedUnitCode) +
-    '&venueID=' + encodeURIComponent(selectedVenue))
-    
-    ;
-    }
-
-    function markAttendance(detectedFaces) {
-        document.querySelectorAll('#studentTableContainer tr').forEach(row => {
-            const registrationNumber = row.cells[0].innerText.trim();
-            if (detectedFaces.includes(registrationNumber)) {
-                row.cells[5].innerText = 'present';
-            }
-        });
-    }
-
-   
-
-    
-
-
-function updateOtherElements(){
-   
-const video = document.getElementById("video");
-const videoContainer = document.querySelector(".video-container");
-const startButton = document.getElementById("startButton");
-let webcamStarted = false;
-let modelsLoaded = false;
-
-
-Promise.all([
-  faceapi.nets.ssdMobilenetv1.loadFromUri("http://localhost/models"),
-  faceapi.nets.faceRecognitionNet.loadFromUri("http://localhost/models"),
-  faceapi.nets.faceLandmark68Net.loadFromUri("http://localhost/models"),
-]).then(() => {
-  modelsLoaded = true;
-});
-startButton.addEventListener("click", async () => {
-    videoContainer.style.display="flex";
-  if (!webcamStarted && modelsLoaded) {
-      startWebcam();
-      webcamStarted = true;
-  }
-});
-
-
-
-
-function startWebcam() {
-  navigator.mediaDevices
-      .getUserMedia({
-          video: true,
-          audio: false,
-      })
-      .then((stream) => {
-          video.srcObject = stream;
-          videoStream = stream; 
-      })
-      .catch((error) => {
-          console.error(error);
-      });
-
+             '&unitID=' + encodeURIComponent(selectedUnitCode) +
+             '&venueID=' + encodeURIComponent(selectedVenue));
 }
-async function getLabeledFaceDescriptions() {
-    const labeledDescriptors = [];
 
-    for (const label of labels) {
-        const descriptions = [];
+function markAttendance(detectedFaces) {
+    document.querySelectorAll('#studentTableContainer tr').forEach(row => {
+        const registrationNumber = row.cells[0].innerText.trim();
+        if (detectedFaces.includes(registrationNumber)) {
+            row.cells[5].innerText = 'Present';
+        }
+    });
+}
 
-        for (let i = 1; i <= 2; i++) {
-            try {
-                const img = await faceapi.fetchImage(`./labels/${label}/${i}.png`);
-                const detections = await faceapi
-                    .detectSingleFace(img)
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
-                
-                if (detections) {
-                    descriptions.push(detections.descriptor);
-                } else {
-                    console.log(`No face detected in ${label}/${i}.png`);
+function updateOtherElements() {
+    const video = document.getElementById("video");
+    const videoContainer = document.querySelector(".video-container");
+    const startButton = document.getElementById("startButton");
+    let webcamStarted = false;
+    let modelsLoaded = false;
+
+    // Set video dimensions
+    video.width = 640;
+    video.height = 480;
+
+    // Load face-api.js models
+    Promise.all([
+        faceapi.nets.ssdMobilenetv1.loadFromUri("./models"),
+        faceapi.nets.faceRecognitionNet.loadFromUri("./models"),
+        faceapi.nets.faceLandmark68Net.loadFromUri("./models"),
+    ]).then(() => {
+        modelsLoaded = true;
+        console.log("Models loaded successfully");
+    }).catch(error => {
+        console.error("Error loading models:", error);
+    });
+
+    startButton.addEventListener("click", async () => {
+        videoContainer.style.display = "flex";
+        if (!webcamStarted && modelsLoaded) {
+            startWebcam();
+            webcamStarted = true;
+        }
+    });
+
+    function startWebcam() {
+        navigator.mediaDevices
+            .getUserMedia({
+                video: {
+                    width: 640,
+                    height: 480,
+                    facingMode: "user"
+                },
+                audio: false,
+            })
+            .then((stream) => {
+                video.srcObject = stream;
+                videoStream = stream;
+            })
+            .catch((error) => {
+                console.error("Error accessing webcam:", error);
+                showMessage("Error accessing webcam. Please check your camera permissions.");
+            });
+    }
+
+    async function getLabeledFaceDescriptions() {
+        const labeledDescriptors = [];
+        console.log("Processing labels:", labels);
+
+        for (const label of labels) {
+            const descriptions = [];
+            console.log("Processing label:", label);
+
+            for (let i = 1; i <= 2; i++) {
+                try {
+                    const img = await faceapi.fetchImage(`./labels/${label}/${i}.png`);
+                    console.log(`Processing image ${i} for label ${label}`);
+                    
+                    const detection = await faceapi
+                        .detectSingleFace(img)
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+                    
+                    if (detection) {
+                        descriptions.push(detection.descriptor);
+                        console.log(`Face detected in ${label}/${i}.png`);
+                    } else {
+                        console.log(`No face detected in ${label}/${i}.png`);
+                    }
+                } catch (error) {
+                    console.error(`Error processing ${label}/${i}.png:`, error);
                 }
-            } catch (error) {
-                console.error(`Error processing ${label}/${i}.png:`, error);
+            }
+
+            if (descriptions.length > 0) {
+                labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(label, descriptions));
+                console.log(`Added descriptor for ${label}`);
             }
         }
 
-        if (descriptions.length > 0) {
-            detectedFaces.push(label);
-            labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(label, descriptions));
-        }
+        return labeledDescriptors;
     }
 
-    return labeledDescriptors;
-}
+    video.addEventListener("play", async () => {
+        console.log("Video started playing");
+        const labeledFaceDescriptors = await getLabeledFaceDescriptions();
+        console.log("Labeled descriptors:", labeledFaceDescriptors);
+        
+        const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6);
+        const canvas = faceapi.createCanvasFromMedia(video);
+        videoContainer.appendChild(canvas);
 
+        const displaySize = { width: video.width, height: video.height };
+        faceapi.matchDimensions(canvas, displaySize);
 
-video.addEventListener("play", async () => {
-    const labeledFaceDescriptors = await getLabeledFaceDescriptions();
-    const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors);
+        setInterval(async () => {
+            const detections = await faceapi
+                .detectAllFaces(video)
+                .withFaceLandmarks()
+                .withFaceDescriptors();
 
-    const canvas = faceapi.createCanvasFromMedia(video);
-    videoContainer.appendChild(canvas);
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+            canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 
-    const displaySize = { width: video.width, height: video.height };
-    faceapi.matchDimensions(canvas, displaySize);
-
-    setInterval(async () => {
-        const detections = await faceapi
-            .detectAllFaces(video)
-            .withFaceLandmarks()
-            .withFaceDescriptors();
-
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-        canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-
-        const results = resizedDetections.map((d) => {
-            return faceMatcher.findBestMatch(d.descriptor);
-        });
-        detectedFaces = results.map(result => result.label);
-        markAttendance(detectedFaces);
+            const results = resizedDetections.map((d) => {
+                return faceMatcher.findBestMatch(d.descriptor);
+            });
 
             results.forEach((result, i) => {
-            const box = resizedDetections[i].detection.box;
-            const drawBox = new faceapi.draw.DrawBox(box, {
-                label: result,
+                const box = resizedDetections[i].detection.box;
+                const drawBox = new faceapi.draw.DrawBox(box, {
+                    label: result.toString(),
+                    boxColor: "green",
+                    drawLabelOptions: {
+                        fontSize: 20,
+                        fontStyle: "bold"
+                    }
+                });
+                drawBox.draw(canvas);
             });
-            drawBox.draw(canvas);
-        });
-    }, 100);
-})};
 
-
+            const newDetectedFaces = results.map(result => result.label);
+            if (JSON.stringify(newDetectedFaces) !== JSON.stringify(detectedFaces)) {
+                detectedFaces = newDetectedFaces;
+                markAttendance(detectedFaces);
+            }
+        }, 100);
+    });
+}
 
 function sendAttendanceDataToServer() {
     const attendanceData = [];
@@ -173,7 +186,7 @@ function sendAttendanceDataToServer() {
         const unit = row.cells[3].innerText.trim();
         const attendanceStatus = row.cells[5].innerText.trim(); 
 
-        attendanceData.push({ studentID,course,unit,attendanceStatus });
+        attendanceData.push({ studentID, course, unit, attendanceStatus });
     });
 
     const xhr = new XMLHttpRequest();
@@ -192,24 +205,24 @@ function sendAttendanceDataToServer() {
 
     xhr.send(JSON.stringify(attendanceData));
 }
+
 function showMessage(message) {
     var messageDiv = document.getElementById('messageDiv');
-    messageDiv.style.display="block";
+    messageDiv.style.display = "block";
     messageDiv.innerHTML = message;
     console.log(message);
     messageDiv.style.opacity = 1;
     setTimeout(function() {
-      messageDiv.style.opacity = 0;
+        messageDiv.style.opacity = 0;
     }, 5000);
-  }
+}
+
 function stopWebcam() {
     if (videoStream) {
         const tracks = videoStream.getTracks();
-
         tracks.forEach((track) => {
             track.stop();
         });
-
         video.srcObject = null;
         videoStream = null;
     }
@@ -218,7 +231,6 @@ function stopWebcam() {
 document.getElementById("endAttendance").addEventListener("click", function() {
     sendAttendanceDataToServer();
     const videoContainer = document.querySelector(".video-container");
-     videoContainer.style.display="none";
+    videoContainer.style.display = "none";
     stopWebcam();
-
 });
