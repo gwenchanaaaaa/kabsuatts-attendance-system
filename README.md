@@ -1,6 +1,6 @@
-# kabsuatts
+# KabsuAtts Attendance System
 
-A web-based course management system built with PHP that allows administrators to manage courses, subjects, and departments.
+A web-based attendance management system built with PHP that allows administrators to manage courses, subjects, departments, and track student attendance.
 
 ## Features
 
@@ -27,7 +27,7 @@ git clone [repository-url]
 
 2. Move the project to your web server directory (e.g., htdocs for XAMPP):
 ```bash
-mv kabsuatts /path/to/xampp/htdocs/
+mv KabsuAtts /path/to/xampp/htdocs/
 ```
 
 3. Import the database schema (provided in `database/schema.sql`)
@@ -38,13 +38,13 @@ mv kabsuatts /path/to/xampp/htdocs/
 
 5. Access the application through your web browser:
 ```
-http://localhost/kabsuatts
+http://localhost/KabsuAtts
 ```
 
 ## Directory Structure
 
 ```
-kabsuatts/
+KabsuAtts/
 ├── Admin/              # Admin panel files
 ├── Includes/           # Common includes and utilities
 ├── css/               # Stylesheets
