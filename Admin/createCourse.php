@@ -115,7 +115,7 @@ if (isset($_POST['deleteUnit'])) {
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link href="Includes/pic/cvsu.png" rel="icon">
-  <title>Admin | Manage Course</title>
+  <title>kabsuatts</title>
   <link rel="stylesheet" href="css/styles.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.css" rel="stylesheet">
   <script src="./javascript/confirmation.js" defer></script>

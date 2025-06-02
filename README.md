@@ -1,4 +1,4 @@
-# Course Management System
+# kabsuatts
 
 A web-based course management system built with PHP that allows administrators to manage courses, subjects, and departments.
 
