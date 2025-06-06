@@ -14,24 +14,59 @@ function getFacultyNames($conn) {
     return $facultyNames;
 }
 
+// Add this function after getFacultyNames
+function getSubjectNames($conn) {
+    $sql = "SELECT unitCode, name FROM tblunit";
+    $result = $conn->query($sql);
+    $subjectNames = array();
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $subjectNames[] = $row;
+        }
+    }
+    return $subjectNames;
+}
+
+// Add this function after getFacultyNames
+function getUnitNames($conn) {
+    $sql = "SELECT unitCode, name FROM tblunit";
+    $result = $conn->query($sql);
+    $unitNames = array();
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $unitNames[] = $row;
+        }
+    }
+    return $unitNames;
+}
+
 // Add venue logic
 if (isset($_POST["addVenue"])) {
-    $className = $_POST["className"];
-    $facultyCode = $_POST["faculty"];
-    $currentStatus = $_POST["currentStatus"];
-    $capacity = $_POST["capacity"];
-    $classification = $_POST["classification"];
+    $className = mysqli_real_escape_string($conn, $_POST["className"]);
+    $subjectName = mysqli_real_escape_string($conn, $_POST["subjectName"]);
+    $facultyCode = mysqli_real_escape_string($conn, $_POST["faculty"]);
+    $currentStatus = mysqli_real_escape_string($conn, $_POST["currentStatus"]);
+    $capacity = mysqli_real_escape_string($conn, $_POST["capacity"]);
+    $classification = mysqli_real_escape_string($conn, $_POST["classification"]);
     $dateRegistered = date("Y-m-d");
 
-    $query = mysqli_query($conn, "SELECT * FROM tblvenue WHERE className='$className'");
-    $ret = mysqli_fetch_array($query);
-    if ($ret > 0) { 
-        $message = "Venue Already Exists";
+    // Check if room already exists
+    $checkQuery = mysqli_query($conn, "SELECT * FROM tblvenue WHERE className='$className'");
+    if (mysqli_num_rows($checkQuery) > 0) {
+        $message = "Room Already Exists";
     } else {
-        $query = mysqli_query($conn, "INSERT INTO tblvenue (className, facultyCode, currentStatus, capacity, classification, dateCreated) 
-        VALUES ('$className', '$facultyCode', '$currentStatus', '$capacity', '$classification', '$dateRegistered')");
-        $message = "Venue Inserted Successfully";
+        $query = mysqli_query($conn, "INSERT INTO tblvenue (className, subjectName, facultyCode, currentStatus, capacity, classification, dateCreated) 
+            VALUES ('$className', '$subjectName', '$facultyCode', '$currentStatus', '$capacity', '$classification', '$dateRegistered')");
+        
+        if ($query) {
+            $message = "Room Added Successfully";
+        } else {
+            $message = "Error Adding Room: " . mysqli_error($conn);
+        }
     }
+    
+    header("Location: createVenue.php?message=" . urlencode($message));
+    exit();
 }
 
 // Edit venue logic
@@ -50,20 +85,31 @@ if (isset($_GET['id'])) {
 
 // Update venue logic for editing via AJAX
 if (isset($_POST['editVenue'])) {
-    $className = $_POST["className"];
-    $facultyCode = $_POST["faculty"];
-    $currentStatus = $_POST["currentStatus"];
-    $capacity = $_POST["capacity"];
-    $classification = $_POST["classification"];
-    $venueId = $_POST["venueId"];
+    $className = mysqli_real_escape_string($conn, $_POST["className"]);
+    $subjectName = mysqli_real_escape_string($conn, $_POST["subjectName"]);
+    $facultyCode = mysqli_real_escape_string($conn, $_POST["faculty"]);
+    $currentStatus = mysqli_real_escape_string($conn, $_POST["currentStatus"]);
+    $capacity = mysqli_real_escape_string($conn, $_POST["capacity"]);
+    $classification = mysqli_real_escape_string($conn, $_POST["classification"]);
+    $venueId = mysqli_real_escape_string($conn, $_POST["venueId"]);
 
-    $query = mysqli_query($conn, "UPDATE tblvenue SET className='$className', facultyCode='$facultyCode', currentStatus='$currentStatus', capacity='$capacity', classification='$classification' WHERE ID='$venueId'");
+    $query = mysqli_query($conn, "UPDATE tblvenue SET 
+        className = '$className', 
+        subjectName = '$subjectName',
+        facultyCode = '$facultyCode', 
+        currentStatus = '$currentStatus', 
+        capacity = '$capacity', 
+        classification = '$classification' 
+        WHERE ID = '$venueId'");
 
     if ($query) {
         $message = "Venue Updated Successfully";
     } else {
-        $message = "Error Updating Venue";
+        $message = "Error Updating Venue: " . mysqli_error($conn);
     }
+    
+    header("Location: createVenue.php?message=" . urlencode($message));
+    exit();
 }
 
 // Delete venue logic
@@ -216,15 +262,17 @@ if (isset($_GET['delete_id'])) {
         <div class="table-container">
             <div class="title" id="addClass2">
                 <h2 class="section--title">Lecture Rooms</h2>
-                <button class="add" id="addClassBtn"><i class="ri-add-line"></i>Add Class</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="add" id="addClassBtn"><i class="ri-add-line"></i>Add Room</button>
+                </div>
             </div>
 
             <div class="table">
                 <table>
                     <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Class Name</th>
+                        <th>Room</th>
+                        <th>Subject Name</th>
                         <th>Faculty</th>
                         <th>Current Status</th>
                         <th>Capacity</th>
@@ -234,20 +282,36 @@ if (isset($_GET['delete_id'])) {
                     </thead>
                     <tbody>
                     <?php
-                    // Fetch the venues from the database
-                    $sql = "SELECT * FROM tblvenue";
+                    // First check if subjectName column exists
+                    $checkColumn = mysqli_query($conn, "SHOW COLUMNS FROM tblvenue LIKE 'subjectName'");
+                    $columnExists = mysqli_num_rows($checkColumn) > 0;
+
+                    if ($columnExists) {
+                        // If column exists, use the join query
+                        $sql = "SELECT v.*, u.name as subjectName 
+                               FROM tblvenue v 
+                               LEFT JOIN tblunit u ON v.subjectName = u.name";
+                    } else {
+                        // If column doesn't exist, use simple query
+                        $sql = "SELECT * FROM tblvenue";
+                    }
+
                     $result = $conn->query($sql);
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
                             echo "<tr>";
-                            echo "<td>" . (isset($row["ID"]) ? $row["ID"] : "N/A") . "</td>";
                             echo "<td>" . $row["className"] . "</td>";
+                            if ($columnExists) {
+                                echo "<td>" . ($row["subjectName"] ?? "Not Assigned") . "</td>";
+                            } else {
+                                echo "<td>Not Assigned</td>";
+                            }
                             echo "<td>" . $row["facultyCode"] . "</td>";
                             echo "<td>" . $row["currentStatus"] . "</td>";
                             echo "<td>" . $row["capacity"] . "</td>";
                             echo "<td>" . $row["classification"] . "</td>";
                             echo "<td>
-                                    <span><i class='ri-edit-line edit' onclick='editVenue(" . $row["ID"] . ", \"" . $row["className"] . "\", \"" . $row["facultyCode"] . "\", \"" . $row["currentStatus"] . "\", \"" . $row["capacity"] . "\", \"" . $row["classification"] . "\")'></i>
+                                    <span><i class='ri-edit-line edit' onclick='editVenue(" . $row["ID"] . ", \"" . $row["className"] . "\", \"" . ($columnExists ? ($row["subjectName"] ?? "") : "") . "\", \"" . $row["facultyCode"] . "\", \"" . $row["currentStatus"] . "\", \"" . $row["capacity"] . "\", \"" . $row["classification"] . "\")'></i>
                                     <i class='ri-delete-bin-line delete' onclick='deleteVenue(" . $row["ID"] . ")'></i></span>
                                   </td>";
                             echo "</tr>";
@@ -263,7 +327,7 @@ if (isset($_GET['delete_id'])) {
 
         <!-- Add/Edit Venue Form Modal -->
         <div class="formDiv-venue" id="addClassForm">
-            <form method="POST" action="" name="addVenue" id="addVenueForm" enctype="multipart/form-data">
+            <form method="POST" action="" name="venueForm" id="venueForm" enctype="multipart/form-data">
                 <div style="display:flex; justify-content:space-around;">
                     <div class="form-title">
                         <p id="modalTitle">Add Class</p>
@@ -272,15 +336,26 @@ if (isset($_GET['delete_id'])) {
                         <span class="close">&times;</span>
                     </div>
                 </div>
-                <input type="text" name="className" id="className" placeholder="Class Name" required>
-                <select name="currentStatus" id="currentStatus">
+                <input type="text" name="className" id="className" placeholder="Room Name" required>
+                <?php if ($columnExists): ?>
+                <select name="subjectName" id="subjectName">
+                    <option value="">Select Subject</option>
+                    <?php
+                    $unitNames = getUnitNames($conn);
+                    foreach ($unitNames as $unit) {
+                        echo '<option value="' . $unit["name"] . '">' . $unit["name"] . '</option>';
+                    }
+                    ?>
+                </select>
+                <?php endif; ?>
+                <select name="currentStatus" id="currentStatus" required>
                     <option value="">--Current Status--</option>
-                    <option value="availlable">Available</option>
+                    <option value="available">Available</option>
                     <option value="scheduled">Scheduled</option>
                 </select>
                 <input type="text" name="capacity" id="capacity" placeholder="Capacity" required>
                 <select required name="classification" id="classification">
-                    <option value="" selected> --Select Class Type--</option>
+                    <option value=""> --Select Class Type--</option>
                     <option value="laboratory">Laboratory</option>
                     <option value="computerLab">Computer Lab</option>
                     <option value="lectureHall">Lecture Hall</option>
@@ -288,7 +363,7 @@ if (isset($_GET['delete_id'])) {
                     <option value="office">Office</option>
                 </select>
                 <select required name="faculty" id="faculty">
-                    <option value="" selected>Select Faculty</option>
+                    <option value="">Select Faculty</option>
                     <?php
                     $facultyNames = getFacultyNames($conn);
                     foreach ($facultyNames as $faculty) {
@@ -296,7 +371,8 @@ if (isset($_GET['delete_id'])) {
                     }
                     ?>
                 </select>
-                <input type="hidden" name="venueId" id="venueId"> <!-- Hidden field for editing -->
+                <input type="hidden" name="venueId" id="venueId">
+                <input type="hidden" name="formType" id="formType" value="add">
                 <input type="submit" class="submit" value="Add Class" name="addVenue" id="saveVenueBtn">
             </form>
         </div>
@@ -308,17 +384,16 @@ if (isset($_GET['delete_id'])) {
     const addClassForm = document.getElementById('addClassForm');
     const overlay = document.getElementById('overlay');
     const saveVenueBtn = document.getElementById('saveVenueBtn');
+    const venueForm = document.getElementById('venueForm');
 
     // Open the Add Class modal
     addClassBtn.addEventListener('click', function () {
         document.getElementById('modalTitle').innerText = 'Add Class';
-        document.getElementById('className').value = '';
-        document.getElementById('faculty').value = '';
-        document.getElementById('currentStatus').value = '';
-        document.getElementById('capacity').value = '';
-        document.getElementById('classification').value = '';
-        document.getElementById('venueId').value = ''; // Clear venue ID
-        saveVenueBtn.value = "Add Class"; // Set the button text to "Add Class"
+        document.getElementById('venueForm').reset();
+        document.getElementById('venueId').value = '';
+        document.getElementById('formType').value = 'add';
+        saveVenueBtn.value = "Add Class";
+        saveVenueBtn.name = "addVenue";
         addClassForm.style.display = 'block';
         overlay.style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -335,15 +410,20 @@ if (isset($_GET['delete_id'])) {
     });
 
     // Open the Edit Class modal
-    function editVenue(id, className, facultyCode, currentStatus, capacity, classification) {
-        document.getElementById('modalTitle').innerText = 'Edit Class';
+    function editVenue(id, className, subjectName, facultyCode, currentStatus, capacity, classification) {
+        document.getElementById('modalTitle').innerText = 'Edit Room';
         document.getElementById('className').value = className;
+        <?php if ($columnExists): ?>
+        document.getElementById('subjectName').value = subjectName;
+        <?php endif; ?>
         document.getElementById('faculty').value = facultyCode;
         document.getElementById('currentStatus').value = currentStatus;
         document.getElementById('capacity').value = capacity;
         document.getElementById('classification').value = classification;
-        document.getElementById('venueId').value = id; // Set venue ID for editing
-        saveVenueBtn.value = "Update Class"; // Change button text to "Update Class"
+        document.getElementById('venueId').value = id;
+        document.getElementById('formType').value = 'edit';
+        saveVenueBtn.value = "Update Room";
+        saveVenueBtn.name = "editVenue";
         addClassForm.style.display = 'block';
         overlay.style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -355,6 +435,23 @@ if (isset($_GET['delete_id'])) {
             window.location.href = "createVenue.php?delete_id=" + id;
         }
     }
+
+    // Add form submission handler
+    document.getElementById('venueForm').addEventListener('submit', function(e) {
+        if (document.getElementById('formType').value === 'edit') {
+            this.action = 'createVenue.php';
+            this.method = 'POST';
+        } else {
+            // For add form
+            this.action = 'createVenue.php';
+            this.method = 'POST';
+        }
+    });
+
+    // Display message if exists
+    <?php if(isset($_GET['message'])): ?>
+    alert("<?php echo htmlspecialchars($_GET['message']); ?>");
+    <?php endif; ?>
 </script>
 
 </body>
